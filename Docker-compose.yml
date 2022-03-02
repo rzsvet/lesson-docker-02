@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+  db:
+    hostname: db
+    environment:
+      - POSTGRES_PASSWORD
+    image: postgres:alpine3.14
+    restart: unless-stopped
+
+  backend:
+    hostname: backend
+    environment:
+      - DATABASE_URI=postgresql://postgres:${POSTGRES_PASSWORD}@db/
+    build:
+      context: ./lib_catalog
+      dockerfile: Dockerfile
+      args:
+        - APP_PATH
+        - APP_MODE
+        - APP_PORT
+    expose:
+      - "${APP_PORT}"
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    restart: unless-stopped
+    volumes:
+      - /var/log/postmanager:/app/logs
+    depends_on:
+      - db
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://backend:${APP_PORT}/" ]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
